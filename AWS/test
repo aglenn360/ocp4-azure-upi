@@ -1,0 +1,62 @@
+apiVersion: "logging.openshift.io/v1"
+kind: "ClusterLogging"
+metadata:
+  name: "instance" 
+  namespace: "openshift-logging"
+spec:
+  managementState: "Managed"  
+  logStore:
+    type: "elasticsearch"  
+    elasticsearch:
+      nodeCount: 3 
+      storage:
+        storageClassName: gp2
+        size: 200G
+      redundancyPolicy: "SingleRedundancy"
+  visualization:
+    type: "kibana"  
+    kibana:
+      replicas: 1
+  curation:
+    type: "curator"  
+    curator:
+      schedule: "30 3 * * *"
+  collection:
+    logs:
+      type: "fluentd"  
+      fluentd: {}
+
+
+      apiVersion: logging.openshift.io/v1
+kind: ClusterLogging
+metadata:
+  creationTimestamp: '2019-08-12T14:51:37Z'
+  generation: 1
+  name: instance
+  namespace: openshift-logging
+  resourceVersion: '76697'
+  selfLink: >-
+    /apis/logging.openshift.io/v1/namespaces/openshift-logging/clusterloggings/instance
+  uid: af97a9da-bd10-11e9-9492-0ab008b046b2
+spec:
+  collection:
+    logs:
+      fluentd: {}
+      type: fluentd
+  curation:
+    curator:
+      schedule: 30 3 * * *
+    type: curator
+  logStore:
+    elasticsearch:
+      nodeCount: 3
+      redundancyPolicy: SingleRedundancy
+      storage:
+        size: 200G
+        storageClassName: gp2
+    type: elasticsearch
+  managementState: Managed
+  visualization:
+    kibana:
+      replicas: 1
+    type: kibana

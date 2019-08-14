@@ -1,0 +1,31 @@
+apiVersion: v1
+items:
+- apiVersion: logging.openshift.io/v1
+  kind: Elasticsearch
+  metadata:
+
+    name: elasticsearch
+    namespace: openshift-operators
+    
+    
+    
+  spec:
+    managementState: Managed
+    nodeSpec:
+      image: registry.redhat.io/openshift4/ose-logging-elasticsearch5:v4.1.4-201906271212
+      resources:
+        limits:
+          memory: 1Gi
+        requests:
+          memory: 512Mi
+    nodes:
+
+      nodeCount: 3
+      resources: {}
+      roles:
+      - client
+      - data
+      - master
+      storage: {}
+    redundancyPolicy: SingleRedundancy
+

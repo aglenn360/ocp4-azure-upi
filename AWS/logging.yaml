@@ -1,14 +1,5 @@
 ##Create namespaces required for logging operator
 
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: openshift-operators-redhat 
-  annotations:
-    openshift.io/node-selector: ""
-  labels:
-    openshift.io/cluster-logging: "true"
-    openshift.io/cluster-monitoring: "true"
 
 ---
 
@@ -22,63 +13,117 @@ metadata:
     openshift.io/cluster-logging: "true"
     openshift.io/cluster-monitoring: "true"
 
-
 ---
-## Create the operator group for the Elasticsearch operator
 
+##Install Elasticsearch operator
 
 apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
+kind: CatalogSourceConfig
 metadata:
-  name: openshift-operators-redhat
-  namespace: openshift-operators-redhat 
-spec: {}
-
+  name: installed-redhat-openshift-operators
+  namespace: openshift-marketplace
+spec:
+  csDisplayName: Red Hat Operators
+  csPublisher: Red Hat
+  packages: elasticsearch-operator
+  targetNamespace: openshift-operators
 
 ---
-## Deploy the Elasticsearch operator
+
+## Register subscription required for elasticsearch operator (pre-req to be enable to install cluster-logging operator )
+
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  labels:
+    csc-owner-name: installed-redhat-openshift-operators
+    csc-owner-namespace: openshift-marketplace
+  name: elasticsearch-operator
+  namespace: openshift-operators
+spec:
+  channel: preview
+  installPlanApproval: Automatic
+  name: elasticsearch-operator
+  source: installed-redhat-openshift-operators
+  sourceNamespace: openshift-operators
+
+---
+
+## Install Cluster-logging operator (main operator for cluster EFK stack)
 
 apiVersion: "operators.coreos.com/v1"
 kind: "CatalogSourceConfig"
 metadata:
-  name: "elasticsearch"
-  namespace: "openshift-marketplace"
+  name: "cluster-logging"
+  namespace: "openshift-logging"
 spec:
-  targetNamespace: "openshift-operators-redhat" 
-  packages: "elasticsearch-operator"
+  targetNamespace: "openshift-logging" 
+  packages: "cluster-logging"
 
 
-
---- 
-## Deploy RBAC configuration for prometheus 
-
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: prometheus-k8s
-  namespace: openshift-operators-redhat
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - services
-  - endpoints
-  - pods
-  verbs:
-  - get
-  - list
-  - watch
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+
+## Apply subscription for cluster logging operator part of the install step
+
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
 metadata:
-  name: prometheus-k8s
-  namespace: openshift-operators-redhat
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: prometheus-k8s
-subjects:
-- kind: ServiceAccount
-  name: prometheus-k8s
-namespace: openshift-operators-redhat
+  labels:
+    csc-owner-name: installed-redhat-openshift-logging
+    csc-owner-namespace: openshift-marketplace
+  name: cluster-logging
+  namespace: openshift-logging
+spec:
+  channel: preview
+  installPlanApproval: Automatic
+  name: cluster-logging
+  source: installed-redhat-openshift-logging
+  sourceNamespace: openshift-logging
+
+
+---
+
+## Configure Logging operator and start it
+
+apiVersion: logging.openshift.io/v1
+kind: ClusterLogging
+metadata:
+  name: instance
+  namespace: openshift-logging
+spec:
+  collection:
+    logs:
+      fluentd:
+        resources: null
+      rsyslog:
+        resources: null
+      type: fluentd
+  curation:
+    curator:
+      resources: null
+      schedule: 30 3 * * *
+    type: curator
+  logStore:
+    elasticsearch:
+      nodeCount: 3
+      redundancyPolicy: SingleRedundancy
+      resources:
+        limits:
+          memory: 4Gi
+        requests:
+          cpu: 500m
+          memory: 4Gi
+      storage:
+        size: 200G
+        storageClassName: gp2
+    type: elasticsearch
+  managementState: Managed
+  visualization:
+    kibana:
+      proxy:
+        resources: null
+      replicas: 1
+      resources: null
+    type: kibana
+
+
