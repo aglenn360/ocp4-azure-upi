@@ -1,7 +1,7 @@
 ##Create namespaces required for logging operator
 
 
----
+
 
 apiVersion: v1
 kind: Namespace
